@@ -7,6 +7,7 @@ export interface IStorage {
   getJob(id: string): Promise<Job | undefined>;
   updateJobStatus(id: string, status: string, progress?: number): Promise<void>;
   updateJobOutput(id: string, outputPath: string): Promise<void>;
+  updateJobDownloadUrl(id: string, downloadUrl: string): Promise<void>;
   updateJobError(id: string, errorMessage: string): Promise<void>;
   getExpiredJobs(): Promise<Job[]>;
   deleteJob(id: string): Promise<void>;
@@ -539,6 +540,8 @@ Start protecting your video content with professional watermarks using VidDonloa
       const blogPost: BlogPost = {
         ...post,
         id,
+        author: post.author || 'VidDonloader Team',
+        published: post.published ?? true,
         createdAt: new Date(),
         updatedAt: new Date(),
       };
@@ -552,9 +555,12 @@ Start protecting your video content with professional watermarks using VidDonloa
     const job: Job = {
       ...insertJob,
       id,
+      title: null,
+      downloadFormat: insertJob.downloadFormat || 'mp4',
       status: 'pending',
       progress: 0,
       outputPath: null,
+      downloadUrl: null,
       errorMessage: null,
       createdAt: new Date(),
       completedAt: null,
@@ -586,6 +592,14 @@ Start protecting your video content with professional watermarks using VidDonloa
     const job = this.jobs.get(id);
     if (job) {
       job.outputPath = outputPath;
+      this.jobs.set(id, job);
+    }
+  }
+
+  async updateJobDownloadUrl(id: string, downloadUrl: string): Promise<void> {
+    const job = this.jobs.get(id);
+    if (job) {
+      job.downloadUrl = downloadUrl;
       this.jobs.set(id, job);
     }
   }
@@ -627,6 +641,8 @@ Start protecting your video content with professional watermarks using VidDonloa
     const post: BlogPost = {
       ...insertPost,
       id,
+      author: insertPost.author || 'VidDonloader Team',
+      published: insertPost.published ?? true,
       createdAt: new Date(),
       updatedAt: new Date(),
     };

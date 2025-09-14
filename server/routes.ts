@@ -8,30 +8,34 @@ import { randomUUID } from "crypto";
 import {
   insertJobSchema,
   insertContactMessageSchema,
-  compressionOptionsSchema,
-  conversionOptionsSchema,
-  trimOptionsSchema,
-  extractOptionsSchema,
-  watermarkOptionsSchema,
+  downloadOptionsSchema,
+  youtubeOptionsSchema,
+  facebookOptionsSchema,
+  instagramOptionsSchema,
   type Job,
 } from "@shared/schema";
 import { z } from "zod";
 
-// Configure multer for file uploads
-const upload = multer({
-  dest: '/tmp/uploads/',
-  limits: {
-    fileSize: 500 * 1024 * 1024, // 500MB limit
-  },
-  fileFilter: (req, file, cb) => {
-    const allowedTypes = ['video/mp4', 'video/avi', 'video/quicktime', 'video/x-msvideo'];
-    if (allowedTypes.includes(file.mimetype)) {
-      cb(null, true);
-    } else {
-      cb(new Error('Invalid file type. Only MP4, AVI, and MOV files are allowed.'));
-    }
+// URL validation helper functions
+function detectPlatform(url: string): string {
+  if (url.includes('youtube.com') || url.includes('youtu.be')) return 'youtube';
+  if (url.includes('facebook.com') || url.includes('fb.watch')) return 'facebook';
+  if (url.includes('instagram.com')) return 'instagram';
+  return 'unknown';
+}
+
+function validateUrl(url: string): { valid: boolean; platform?: string; message?: string } {
+  const platform = detectPlatform(url);
+  if (platform === 'unknown') {
+    return { valid: false, message: 'Unsupported platform. Only YouTube, Facebook, and Instagram URLs are supported.' };
   }
-});
+  try {
+    new URL(url);
+    return { valid: true, platform };
+  } catch {
+    return { valid: false, message: 'Invalid URL format' };
+  }
+}
 
 // Simple job queue (would use BullMQ with Redis in production)
 class SimpleJobQueue {
@@ -60,17 +64,21 @@ class SimpleJobQueue {
         await storage.updateJobStatus(jobId, 'processing', progress);
       }
 
-      // Simulate output file creation
-      const outputExtension = this.getOutputExtension(job.action, job.options);
-      const outputPath = `/tmp/processed/${jobId}${outputExtension}`;
+      // Simulate video download process
+      const outputExtension = `.${job.downloadFormat || 'mp4'}`;
+      const outputPath = `/tmp/downloads/${jobId}${outputExtension}`;
       
       // Create output directory if it doesn't exist
-      await fs.mkdir('/tmp/processed', { recursive: true });
+      await fs.mkdir('/tmp/downloads', { recursive: true });
       
-      // Copy input to output for demo (would use FFmpeg in production)
-      await fs.copyFile(job.filePath, outputPath);
+      // Simulate download (would use yt-dlp or similar in production)
+      await this.simulateDownload(job.url, outputPath, job.platform);
+      
+      // Create a download URL for the file
+      const downloadUrl = `/api/download/${jobId}`;
       
       await storage.updateJobOutput(jobId, outputPath);
+      await storage.updateJobDownloadUrl(jobId, downloadUrl);
       await storage.updateJobStatus(jobId, 'completed', 100);
       
     } catch (error) {
@@ -80,78 +88,79 @@ class SimpleJobQueue {
     }
   }
 
-  private getOutputExtension(action: string, options: any): string {
-    switch (action) {
-      case 'convert':
-        return options.format === 'gif' ? '.gif' : `.${options.format}`;
-      case 'extract':
-        return options.format === 'wav' ? '.wav' : '.mp3';
-      default:
-        return '.mp4';
-    }
+  private async simulateDownload(url: string, outputPath: string, platform: string): Promise<void> {
+    // In production, this would use yt-dlp or similar tools
+    // For demo purposes, create a placeholder file
+    const placeholderContent = `Mock downloaded video from ${platform}: ${url}`;
+    await fs.writeFile(outputPath, placeholderContent, 'utf8');
   }
 }
 
 const jobQueue = new SimpleJobQueue();
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // File upload endpoint
-  app.post('/api/upload', upload.single('video'), async (req, res) => {
+  // Video download endpoint
+  app.post('/api/download-video', async (req, res) => {
     try {
-      if (!req.file) {
-        return res.status(400).json({ error: 'No video file uploaded' });
+      const { url, format = 'mp4', platform } = req.body;
+
+      if (!url) {
+        return res.status(400).json({ error: 'Video URL is required' });
       }
 
-      const fileInfo = {
-        id: randomUUID(),
-        fileName: req.file.originalname,
-        filePath: req.file.path,
-        fileSize: req.file.size,
-        mimetype: req.file.mimetype,
-      };
+      // Validate URL and platform
+      const validation = validateUrl(url);
+      if (!validation.valid) {
+        return res.status(400).json({ error: validation.message });
+      }
 
-      res.json({
-        success: true,
-        file: fileInfo,
+      // Create job for video download
+      const job = await storage.createJob({
+        url,
+        platform: validation.platform!,
+        downloadFormat: format,
+        options: { quality: 'high', format },
       });
+
+      // Add job to queue for processing
+      await jobQueue.addJob(job);
+
+      res.json({ success: true, jobId: job.id });
     } catch (error) {
-      console.error('Upload error:', error);
-      res.status(500).json({ error: 'Upload failed' });
+      console.error('Download request error:', error);
+      res.status(500).json({ error: 'Failed to process download request' });
     }
   });
 
-  // Job processing endpoint
-  app.post('/api/process', async (req, res) => {
+  // Alternative download endpoint with platform-specific validation
+  app.post('/api/process-download', async (req, res) => {
     try {
-      const { action, filePath, fileName, fileSize, options } = req.body;
+      const { url, platform, format = 'mp4', options } = req.body;
 
-      // Validate options based on action
+      if (!url || !platform) {
+        return res.status(400).json({ error: 'URL and platform are required' });
+      }
+
+      // Validate options based on platform
       let validatedOptions;
-      switch (action) {
-        case 'compress':
-          validatedOptions = compressionOptionsSchema.parse(options);
+      switch (platform) {
+        case 'youtube':
+          validatedOptions = youtubeOptionsSchema.parse(options || {});
           break;
-        case 'convert':
-          validatedOptions = conversionOptionsSchema.parse(options);
+        case 'facebook':
+          validatedOptions = facebookOptionsSchema.parse(options || {});
           break;
-        case 'trim':
-          validatedOptions = trimOptionsSchema.parse(options);
-          break;
-        case 'extract':
-          validatedOptions = extractOptionsSchema.parse(options);
-          break;
-        case 'watermark':
-          validatedOptions = watermarkOptionsSchema.parse(options);
+        case 'instagram':
+          validatedOptions = instagramOptionsSchema.parse(options || {});
           break;
         default:
-          return res.status(400).json({ error: 'Invalid action' });
+          return res.status(400).json({ error: 'Invalid platform' });
       }
 
       const job = await storage.createJob({
-        fileName,
-        filePath,
-        fileSize,
-        action,
+        url,
+        platform,
+        downloadFormat: format,
         options: validatedOptions,
       });
 
@@ -160,11 +169,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       res.json({ success: true, jobId: job.id });
     } catch (error) {
-      console.error('Process error:', error);
+      console.error('Process download error:', error);
       if (error instanceof z.ZodError) {
         return res.status(400).json({ error: 'Invalid options', details: error.errors });
       }
-      res.status(500).json({ error: 'Processing failed' });
+      res.status(500).json({ error: 'Download processing failed' });
     }
   });
 
@@ -206,10 +215,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Set appropriate headers
       const extension = path.extname(job.outputPath);
-      const contentType = this.getContentType(extension);
+      const contentType = getContentType(extension);
+      
+      // Generate filename based on job info
+      const fileName = `video_${job.platform}_${job.id}${extension}`;
       
       res.setHeader('Content-Type', contentType);
-      res.setHeader('Content-Disposition', `attachment; filename="processed_${job.fileName}"`);
+      res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
       
       // Stream the file
       const fileStream = await fs.readFile(job.outputPath);
@@ -264,9 +276,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const expiredJobs = await storage.getExpiredJobs();
       for (const job of expiredJobs) {
-        // Delete files
+        // Delete downloaded files
         try {
-          await fs.unlink(job.filePath);
           if (job.outputPath) {
             await fs.unlink(job.outputPath);
           }

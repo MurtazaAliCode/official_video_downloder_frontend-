@@ -5,14 +5,15 @@ import { z } from "zod";
 
 export const jobs = pgTable("jobs", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  fileName: text("file_name").notNull(),
-  filePath: text("file_path").notNull(),
-  fileSize: integer("file_size").notNull(),
-  action: text("action").notNull(), // 'compress', 'convert', 'trim', 'extract', 'watermark'
+  url: text("url").notNull(),
+  platform: text("platform").notNull(), // 'youtube', 'facebook', 'instagram'
+  title: text("title"),
+  downloadFormat: text("download_format").notNull().default('mp4'),
   options: jsonb("options").notNull(),
   status: text("status").notNull().default('pending'), // 'pending', 'processing', 'completed', 'failed'
   progress: integer("progress").notNull().default(0),
   outputPath: text("output_path"),
+  downloadUrl: text("download_url"),
   errorMessage: text("error_message"),
   createdAt: timestamp("created_at").notNull().default(sql`now()`),
   completedAt: timestamp("completed_at"),
@@ -66,32 +67,21 @@ export type BlogPost = typeof blogPosts.$inferSelect;
 export type InsertContactMessage = z.infer<typeof insertContactMessageSchema>;
 export type ContactMessage = typeof contactMessages.$inferSelect;
 
-// Processing options schemas
-export const compressionOptionsSchema = z.object({
-  quality: z.enum(['high', 'medium', 'low']).default('medium'),
+// Download options schemas
+export const downloadOptionsSchema = z.object({
+  quality: z.enum(['highest', 'high', 'medium', 'low']).default('high'),
+  format: z.enum(['mp4']).default('mp4'),
 });
 
-export const conversionOptionsSchema = z.object({
-  format: z.enum(['mp4', 'avi', 'mov', 'gif']).default('mp4'),
+export const youtubeOptionsSchema = downloadOptionsSchema.extend({
+  resolution: z.enum(['1080p', '720p', '480p', '360p']).optional(),
 });
 
-export const trimOptionsSchema = z.object({
-  startTime: z.string().regex(/^\d{2}:\d{2}:\d{2}$/),
-  endTime: z.string().regex(/^\d{2}:\d{2}:\d{2}$/),
-});
+export const facebookOptionsSchema = downloadOptionsSchema;
 
-export const extractOptionsSchema = z.object({
-  format: z.enum(['mp3', 'wav']).default('mp3'),
-});
+export const instagramOptionsSchema = downloadOptionsSchema;
 
-export const watermarkOptionsSchema = z.object({
-  text: z.string().optional(),
-  position: z.enum(['top-left', 'top-right', 'bottom-left', 'bottom-right']).default('bottom-right'),
-  logoPath: z.string().optional(),
-});
-
-export type CompressionOptions = z.infer<typeof compressionOptionsSchema>;
-export type ConversionOptions = z.infer<typeof conversionOptionsSchema>;
-export type TrimOptions = z.infer<typeof trimOptionsSchema>;
-export type ExtractOptions = z.infer<typeof extractOptionsSchema>;
-export type WatermarkOptions = z.infer<typeof watermarkOptionsSchema>;
+export type DownloadOptions = z.infer<typeof downloadOptionsSchema>;
+export type YoutubeOptions = z.infer<typeof youtubeOptionsSchema>;
+export type FacebookOptions = z.infer<typeof facebookOptionsSchema>;
+export type InstagramOptions = z.infer<typeof instagramOptionsSchema>;
