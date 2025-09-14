@@ -3,93 +3,67 @@ import { useLocation } from "wouter";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { AdBanner, AdSidebar } from "@/components/layout/AdSlots";
-import { UploadBox } from "@/components/ui/upload-box";
-import { VideoProcessor } from "@/components/video/processor";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { CheckCircle, ArrowRight } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { CheckCircle, Download, Link } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-
-interface UploadedFile {
-  file: File;
-  id: string;
-}
 
 export default function Home() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
-  const [uploadedFile, setUploadedFile] = useState<UploadedFile | undefined>();
-  const [isUploading, setIsUploading] = useState(false);
-  const [isProcessing, setIsProcessing] = useState(false);
+  const [videoUrl, setVideoUrl] = useState("");
+  const [isDownloading, setIsDownloading] = useState(false);
+  const [downloadFormat, setDownloadFormat] = useState("mp4");
 
-  const handleFileSelect = async (file: File) => {
-    setIsUploading(true);
-    
+  const detectPlatform = (url: string) => {
+    if (url.includes('youtube.com') || url.includes('youtu.be')) return 'youtube';
+    if (url.includes('facebook.com') || url.includes('fb.watch')) return 'facebook';
+    if (url.includes('instagram.com')) return 'instagram';
+    return 'unknown';
+  };
+
+  const validateUrl = (url: string) => {
+    const platform = detectPlatform(url);
+    if (platform === 'unknown') {
+      return { valid: false, message: 'Please enter a valid YouTube, Facebook, or Instagram video URL' };
+    }
     try {
-      const formData = new FormData();
-      formData.append('video', file);
-      
-      const response = await fetch('/api/upload', {
-        method: 'POST',
-        body: formData,
-      });
-      
-      if (!response.ok) {
-        throw new Error('Upload failed');
-      }
-      
-      const result = await response.json();
-      
-      setUploadedFile({
-        file,
-        id: result.file.id,
-      });
-      
-      toast({
-        title: "File uploaded successfully",
-        description: "Your video is ready for processing.",
-      });
-    } catch (error) {
-      console.error('Upload error:', error);
-      toast({
-        variant: "destructive",
-        title: "Upload failed",
-        description: "Please try again with a different file.",
-      });
-    } finally {
-      setIsUploading(false);
+      new URL(url);
+      return { valid: true, platform };
+    } catch {
+      return { valid: false, message: 'Please enter a valid URL' };
     }
   };
 
-  const handleFileRemove = () => {
-    setUploadedFile(undefined);
-  };
+  const handleDownload = async () => {
+    if (!videoUrl.trim()) {
+      toast({
+        variant: "destructive",
+        title: "URL Required",
+        description: "Please enter a video URL to download.",
+      });
+      return;
+    }
 
-  const handleProcess = async (data: any) => {
-    if (!uploadedFile) return;
-    
-    setIsProcessing(true);
+    const validation = validateUrl(videoUrl);
+    if (!validation.valid) {
+      toast({
+        variant: "destructive",
+        title: "Invalid URL",
+        description: validation.message,
+      });
+      return;
+    }
+
+    setIsDownloading(true);
     
     try {
-      const response = await apiRequest('POST', '/api/process', {
-        action: data.action,
-        filePath: uploadedFile.file.name, // This would be the actual file path from upload
-        fileName: uploadedFile.file.name,
-        fileSize: uploadedFile.file.size,
-        options: {
-          ...(data.action === 'compress' && { quality: data.compressionQuality }),
-          ...(data.action === 'convert' && { format: data.outputFormat }),
-          ...(data.action === 'trim' && { 
-            startTime: data.startTime, 
-            endTime: data.endTime 
-          }),
-          ...(data.action === 'extract' && { format: data.audioFormat }),
-          ...(data.action === 'watermark' && { 
-            text: data.watermarkText,
-            position: data.watermarkPosition 
-          }),
-        },
+      const response = await apiRequest('POST', '/api/download-video', {
+        url: videoUrl,
+        format: downloadFormat,
+        platform: validation.platform,
       });
       
       const result = await response.json();
@@ -98,14 +72,14 @@ export default function Home() {
       setLocation(`/processing/${result.jobId}`);
       
     } catch (error) {
-      console.error('Processing error:', error);
+      console.error('Download error:', error);
       toast({
         variant: "destructive",
-        title: "Processing failed",
-        description: "Please try again.",
+        title: "Download failed",
+        description: "Please check the URL and try again.",
       });
     } finally {
-      setIsProcessing(false);
+      setIsDownloading(false);
     }
   };
 
@@ -120,35 +94,83 @@ export default function Home() {
         <div className="relative container mx-auto px-4 sm:px-6 lg:px-8 py-20">
           <div className="text-center mb-12">
             <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold text-white mb-6">
-              Process Your Videos
+              Download Videos
               <span className="block text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 to-pink-300">
-                Like a Pro
+                in MP4 Format
               </span>
             </h1>
             <p className="text-xl text-white/90 max-w-2xl mx-auto mb-8">
-              Free online video processing tool for compression, format conversion, trimming, audio extraction, and watermarking. Safe, secure, and privacy-focused.
+              Download videos from YouTube, Facebook, and Instagram in MP4 format. Fast, free, and easy to use.
             </p>
           </div>
 
           {/* Main Content Area */}
           <div className="max-w-6xl mx-auto grid lg:grid-cols-4 gap-8">
-            {/* Upload and Processing Area */}
+            {/* URL Input and Download Area */}
             <div className="lg:col-span-3 space-y-8">
-              {/* Upload Box */}
-              <UploadBox
-                onFileSelect={handleFileSelect}
-                onFileRemove={handleFileRemove}
-                uploadedFile={uploadedFile}
-                isUploading={isUploading}
-              />
+              {/* URL Input Box */}
+              <Card>
+                <CardContent className="p-8">
+                  <div className="space-y-6">
+                    <div className="text-center">
+                      <div className="w-16 h-16 mx-auto bg-primary/10 rounded-full flex items-center justify-center mb-4">
+                        <Link className="w-8 h-8 text-primary" />
+                      </div>
+                      <h3 className="text-xl font-semibold text-card-foreground mb-2">
+                        Enter Video URL
+                      </h3>
+                      <p className="text-muted-foreground">
+                        Paste the URL of the video you want to download
+                      </p>
+                    </div>
 
-              {/* Processing Options */}
-              {uploadedFile && (
-                <VideoProcessor
-                  onProcess={handleProcess}
-                  isProcessing={isProcessing}
-                />
-              )}
+                    <div className="space-y-4">
+                      <Input
+                        placeholder="https://www.youtube.com/watch?v=..."
+                        value={videoUrl}
+                        onChange={(e) => setVideoUrl(e.target.value)}
+                        className="text-lg py-6"
+                        data-testid="video-url-input"
+                      />
+                      
+                      {/* Platform Logos */}
+                      <div className="text-center">
+                        <p className="text-sm text-muted-foreground mb-3">Supported platforms:</p>
+                        <div className="flex justify-center items-center space-x-8">
+                          <div className="flex flex-col items-center space-y-2">
+                            <div className="w-12 h-12 bg-red-600 rounded-lg flex items-center justify-center">
+                              <span className="text-white font-bold text-lg">YT</span>
+                            </div>
+                            <span className="text-xs text-muted-foreground">YouTube</span>
+                          </div>
+                          <div className="flex flex-col items-center space-y-2">
+                            <div className="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center">
+                              <span className="text-white font-bold text-lg">FB</span>
+                            </div>
+                            <span className="text-xs text-muted-foreground">Facebook</span>
+                          </div>
+                          <div className="flex flex-col items-center space-y-2">
+                            <div className="w-12 h-12 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg flex items-center justify-center">
+                              <span className="text-white font-bold text-lg">IG</span>
+                            </div>
+                            <span className="text-xs text-muted-foreground">Instagram</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <Button
+                        onClick={handleDownload}
+                        disabled={isDownloading || !videoUrl.trim()}
+                        className="w-full btn-gradient text-primary-foreground py-6 text-lg font-semibold hover:scale-[1.02] transition-all"
+                        data-testid="download-button"
+                      >
+                        <Download className="w-5 h-5 mr-2" />
+                        {isDownloading ? "Processing..." : "Download MP4"}
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
             </div>
 
             {/* Sidebar with Ads and Features */}
@@ -164,9 +186,9 @@ export default function Home() {
                 <CardContent className="space-y-3">
                   {[
                     { title: "100% Free", desc: "No registration required" },
-                    { title: "Privacy Focused", desc: "Files deleted after 24h" },
-                    { title: "Multiple Formats", desc: "MP4, AVI, MOV support" },
-                    { title: "Fast Processing", desc: "Cloud-powered servers" },
+                    { title: "High Quality", desc: "Download in MP4 format" },
+                    { title: "Fast Downloads", desc: "Direct download links" },
+                    { title: "Safe & Secure", desc: "No malware or ads" },
                   ].map((feature, index) => (
                     <div key={index} className="flex items-start space-x-3">
                       <div className="w-5 h-5 bg-green-500 rounded-full flex items-center justify-center mt-0.5">
@@ -188,9 +210,9 @@ export default function Home() {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   {[
-                    { value: "50,000+", label: "Videos Processed" },
-                    { value: "15,000+", label: "Happy Users" },
-                    { value: "500MB", label: "Max File Size" },
+                    { value: "100,000+", label: "Videos Downloaded" },
+                    { value: "25,000+", label: "Happy Users" },
+                    { value: "MP4", label: "Output Format" },
                   ].map((stat, index) => (
                     <div key={index} className="text-center">
                       <div className="text-2xl font-bold text-primary">{stat.value}</div>
@@ -209,50 +231,50 @@ export default function Home() {
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
-              Powerful Video Processing Tools
+              Download Videos from Popular Platforms
             </h2>
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              Everything you need to edit, convert, and optimize your videos in one place
+              Easily download videos from YouTube, Facebook, and Instagram in MP4 format
             </p>
           </div>
 
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
             {[
               {
-                title: "Video Compression",
-                desc: "Reduce file size without losing quality. Perfect for sharing on social media or saving storage space.",
-                features: ["Multiple quality options", "Maintains video quality", "Fast processing"],
+                title: "YouTube Downloads",
+                desc: "Download videos from YouTube in high quality MP4 format. Supports all video resolutions.",
+                features: ["HD/4K quality", "Fast downloads", "Direct MP4 format"],
+                color: "red",
+              },
+              {
+                title: "Facebook Videos", 
+                desc: "Download videos from Facebook posts and pages. Get your favorite videos offline.",
+                features: ["Public videos", "Page content", "Story downloads"],
                 color: "blue",
               },
               {
-                title: "Format Conversion", 
-                desc: "Convert between popular video formats like MP4, AVI, MOV, and even create GIFs from short clips.",
-                features: ["MP4, AVI, MOV support", "GIF creation", "Universal compatibility"],
-                color: "green",
-              },
-              {
-                title: "Video Trimming",
-                desc: "Cut and trim your videos to the perfect length. Remove unwanted parts with precise time controls.",
-                features: ["Precise time selection", "Multiple segments", "Preview before processing"],
-                color: "purple",
-              },
-              {
-                title: "Audio Extraction",
-                desc: "Extract high-quality audio from your videos. Perfect for creating podcasts or music files.",
-                features: ["MP3 and WAV output", "High-quality audio", "Preserve original quality"],
-                color: "yellow",
-              },
-              {
-                title: "Add Watermarks",
-                desc: "Protect your content with custom text or logo watermarks. Choose position and opacity to match your brand.",
-                features: ["Text or logo watermarks", "Custom positioning", "Adjustable transparency"],
+                title: "Instagram Content",
+                desc: "Download Instagram videos, reels, and IGTV content in original quality.",
+                features: ["Reels & IGTV", "Stories & posts", "Original quality"],
                 color: "pink",
               },
               {
-                title: "Privacy & Security",
-                desc: "Your videos are processed securely and automatically deleted after 24 hours. We don't store your content.",
-                features: ["Automatic file deletion", "No data collection", "Secure processing"],
-                color: "red",
+                title: "High Quality",
+                desc: "All downloads maintain original video quality and are provided in MP4 format.",
+                features: ["Original resolution", "MP4 format", "No quality loss"],
+                color: "green",
+              },
+              {
+                title: "Fast & Free",
+                desc: "Quick download processing with no registration required. Completely free to use.",
+                features: ["No registration", "Unlimited downloads", "Fast processing"],
+                color: "purple",
+              },
+              {
+                title: "Safe & Secure",
+                desc: "No malware, no viruses, no data collection. Your privacy is our priority.",
+                features: ["No malware", "Privacy focused", "Secure downloads"],
+                color: "yellow",
               },
             ].map((feature, index) => (
               <Card key={index} className="card-hover">
