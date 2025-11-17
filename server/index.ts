@@ -1,11 +1,14 @@
 import express, { type Request, Response, NextFunction } from "express";
-import { registerRoutes } from "./routes";
-import { setupVite, serveStatic, log } from "./vite";
+import http from "http"; // Import http module
+// FIXED: Local imports mein .js extension add karna zaroori hai
+import { registerRoutes } from "./routes.js";
+import { setupVite, serveStatic, log } from "./vite.js";
 
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
+// Logging middleware: Safai ke liye accha hai
 app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;
@@ -37,34 +40,42 @@ app.use((req, res, next) => {
 });
 
 (async () => {
-  const server = await registerRoutes(app);
+  // CRITICAL: Yahan aapki saari routes load hoti hain (routes.ts se)
+  registerRoutes(app); // No need to await or capture return value here
 
+  // Create HTTP server
+  const server = http.createServer(app);
+
+  // SANITY CHECK ROUTE: Yeh check karne ke liye ki Express theek se chal raha hai ya nahi.
+  app.get('/api/status-check', (_req, res) => {
+    res.json({ success: true, message: 'Server is running and routes are active!' });
+  });
+
+  // Global Error Handler
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";
 
+    // Console mein error print karein takay debugging aasan ho
+    console.error(`Unhandled API Error (${status}):`, err);
+
     res.status(status).json({ message });
-    throw err;
+    // throw err; <--- Is line ko hata diya gaya hai.
   });
 
-  // importantly only setup vite in development and after
-  // setting up all the other routes so the catch-all route
-  // doesn't interfere with the other routes
+  // Development mein Vite server set up karein, baaki mein static files serve karein
   if (app.get("env") === "development") {
-    await setupVite(app, server);
+    await setupVite(app, server); // Pass the http server
   } else {
     serveStatic(app);
   }
 
-  // ALWAYS serve the app on the port specified in the environment variable PORT
-  // Other ports are firewalled. Default to 5000 if not specified.
-  // this serves both the API and the client.
-  // It is the only port that is not firewalled.
+  // Server start karein
   const port = parseInt(process.env.PORT || '5000', 10);
-  server.listen({
+  server.listen({ // Listen on the http server
     port,
     host: "0.0.0.0",
-    reusePort: true,
+    // 'reusePort: true' hata diya gaya hai
   }, () => {
     log(`serving on port ${port}`);
   });
