@@ -17,7 +17,7 @@
     },
     {
       "src": "/(.*)",
-      "dest": "/client/dist/public/$1"
+      "dest": "/client"
     }
   ]
 }
