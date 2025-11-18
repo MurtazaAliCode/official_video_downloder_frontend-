@@ -122,7 +122,7 @@ export function estimateProcessingTime(fileSizeBytes: number, action: Processing
   }
 }
 
-export function getSupportedFormats(): Record<string, string[]> {
+export function getSupportedFormats(): any {
   return {
     input: ['mp4', 'avi', 'mov', 'quicktime', 'x-msvideo'],
     output: {

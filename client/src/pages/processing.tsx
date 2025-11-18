@@ -7,6 +7,7 @@ import { ProgressBar } from "@/components/ui/progress-bar";
 import { DownloadLink } from "@/components/video/download-link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
+import type { Job } from "@shared/schema";
 
 interface ProcessingPageProps {
   params: {
@@ -18,9 +19,10 @@ export default function Processing({ params }: ProcessingPageProps) {
   const [, setLocation] = useLocation();
   const { jobId } = params;
   
-  const { data: job, isLoading } = useQuery({
+  const { data: job, isLoading } = useQuery<Job>({
     queryKey: ['/api/status', jobId],
-    refetchInterval: (data) => {
+    refetchInterval: (query) => {
+      const data = query.state.data;
       // Stop polling if job is completed or failed
       return data?.status === 'completed' || data?.status === 'failed' ? false : 2000;
     },

@@ -93,11 +93,15 @@ export function useProcessing(): UseProcessingReturn {
   // Processing mutation
   const processingMutation = useMutation({
     mutationFn: async (options: ProcessingOptions) => {
-      return await apiRequest('POST', '/api/process', options);
+      const response = await apiRequest('POST', '/api/process', options);
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Processing failed');
+      }
+      return response.json();
     },
-    onSuccess: (response, options) => {
-      const result = response.json ? response.json() : response;
-      const jobId = result.jobId;
+    onSuccess: (data: { jobId: string }, options) => {
+      const jobId = data.jobId;
       
       setCurrentJobId(jobId);
       
@@ -158,8 +162,7 @@ export function useProcessing(): UseProcessingReturn {
     setIsProcessing(true);
     
     try {
-      const result = await processingMutation.mutateAsync(options);
-      const data = result.json ? await result.json() : result;
+      const data = await processingMutation.mutateAsync(options);
       return { jobId: data.jobId };
     } catch (error) {
       return null;
@@ -210,7 +213,8 @@ export function useJobStatus(jobId: string | null) {
   return useQuery<Job>({
     queryKey: ['/api/status', jobId],
     enabled: !!jobId,
-    refetchInterval: (data) => {
+    refetchInterval: (query) => {
+      const data = query.state.data;
       // Stop polling if job is completed or failed
       if (!data || data.status === 'completed' || data.status === 'failed') {
         return false;
