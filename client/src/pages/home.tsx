@@ -9,6 +9,9 @@ import { Input } from "@/components/ui/input";
 import { CheckCircle, Download, Link } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import youtubeLogo from "@/assets/youtube.jpg";
+import facebookLogo from "@/assets/facebook.png";
+import instagramLogo from "@/assets/instagram.jpg";
 
 export default function Home() {
   const [, setLocation] = useLocation();
@@ -138,21 +141,15 @@ export default function Home() {
                         <p className="text-sm text-muted-foreground mb-3">Supported platforms:</p>
                         <div className="flex justify-center items-center space-x-8">
                           <div className="flex flex-col items-center space-y-2">
-                            <div className="w-12 h-12 bg-red-600 rounded-lg flex items-center justify-center">
-                              <span className="text-white font-bold text-lg">YT</span>
-                            </div>
+                            <img src={youtubeLogo} alt="YouTube" className="w-12 h-12 rounded-lg" />
                             <span className="text-xs text-muted-foreground">YouTube</span>
                           </div>
                           <div className="flex flex-col items-center space-y-2">
-                            <div className="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center">
-                              <span className="text-white font-bold text-lg">FB</span>
-                            </div>
+                            <img src={facebookLogo} alt="Facebook" className="w-12 h-12 rounded-lg" />
                             <span className="text-xs text-muted-foreground">Facebook</span>
                           </div>
                           <div className="flex flex-col items-center space-y-2">
-                            <div className="w-12 h-12 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg flex items-center justify-center">
-                              <span className="text-white font-bold text-lg">IG</span>
-                            </div>
+                            <img src={instagramLogo} alt="Instagram" className="w-12 h-12 rounded-lg" />
                             <span className="text-xs text-muted-foreground">Instagram</span>
                           </div>
                         </div>
