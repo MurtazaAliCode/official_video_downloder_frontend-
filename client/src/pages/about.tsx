@@ -2,12 +2,13 @@ import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { Card, CardContent } from "@/components/ui/card";
 import { CheckCircle } from "lucide-react";
+import teamPhoto from "@/assets/teams_photo.png";
 
 export default function About() {
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      
+
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-20">
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-16">
@@ -21,23 +22,27 @@ export default function About() {
 
           <div className="grid md:grid-cols-2 gap-12 items-center">
             <div className="order-2 md:order-1">
-              <div className="bg-gradient-to-br from-primary/20 to-accent/20 rounded-xl h-96 flex items-center justify-center">
-                <span className="text-muted-foreground">Team Image Placeholder</span>
-              </div>
+              <img
+                src={teamPhoto}  // Fixed: Removed "/assets/"
+                alt="VidDonloader Team working collaboratively"
+                className="w-full h-auto rounded-xl shadow-lg object-cover"
+                style={{ maxHeight: '400px' }}
+
+              />
             </div>
-            
+
             <div className="order-1 md:order-2 space-y-6">
               <h2 className="text-2xl font-semibold text-foreground">Our Mission</h2>
               <p className="text-muted-foreground">
-                VidDonloader is a free online video processing tool built with React and Express for speed and privacy. 
-                We believe everyone should have access to professional video editing capabilities without 
+                VidDonloader is a free online video processing tool built with React and Express for speed and privacy.
+                We believe everyone should have access to professional video editing capabilities without
                 the need for expensive software or complex installations.
               </p>
               <p className="text-muted-foreground">
-                Our platform focuses exclusively on processing your own content - no external downloads, 
+                Our platform focuses exclusively on processing your own content - no external downloads,
                 no copyright violations, just pure video editing power at your fingertips.
               </p>
-              
+
               <div className="space-y-4">
                 {[
                   {
@@ -45,7 +50,7 @@ export default function About() {
                     desc: "No hidden fees, no registration required"
                   },
                   {
-                    title: "Privacy First", 
+                    title: "Privacy First",
                     desc: "Your files are automatically deleted after 24 hours"
                   },
                   {
@@ -75,32 +80,32 @@ export default function About() {
                 {
                   title: "Video Compression",
                   desc: "Reduce file sizes while maintaining quality for easy sharing and storage.",
-                  icon: "📹"
+                  icon: "Video"
                 },
                 {
-                  title: "Format Conversion", 
+                  title: "Format Conversion",
                   desc: "Convert between MP4, AVI, MOV and create GIFs from video clips.",
-                  icon: "🔄"
+                  icon: "Convert"
                 },
                 {
                   title: "Video Trimming",
                   desc: "Cut and trim videos with precision to remove unwanted sections.",
-                  icon: "✂️"
+                  icon: "Trim"
                 },
                 {
                   title: "Audio Extraction",
                   desc: "Extract high-quality audio tracks in MP3 or WAV format.",
-                  icon: "🎵"
+                  icon: "Audio"
                 },
                 {
                   title: "Watermarking",
                   desc: "Add text or logo watermarks to protect your content.",
-                  icon: "🔒"
+                  icon: "Watermark"
                 },
                 {
                   title: "Privacy Protection",
                   desc: "Secure processing with automatic file deletion after 24 hours.",
-                  icon: "🛡️"
+                  icon: "Privacy"
                 }
               ].map((feature, index) => (
                 <Card key={index}>

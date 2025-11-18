@@ -5,8 +5,39 @@ import { Footer } from "@/components/layout/Footer";
 import { AdBanner, AdSidebar } from "@/components/layout/AdSlots";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Clock, Calendar } from "lucide-react";
+import { ArrowRight, Calendar, Download } from "lucide-react";
 import type { BlogPost } from "@shared/schema";
+
+// Import guide images from src/assets
+import guide1 from "@/assets/guied_1.png";
+import guide2 from "@/assets/guied_2.png";
+import guide3 from "@/assets/guied_3.png";
+import guide4 from "@/assets/guied_4.png";
+
+// === TUTORIAL DATA (USING IMPORTED IMAGES) ===
+const downloadGuideSteps = [
+  {
+    image: guide1,
+    title: "Interface (First Look)",
+    desc: "Upon landing on the VidDonloader homepage, you will see this clean interface. Your entire downloading process starts right here.",
+  },
+  {
+    image: guide2,
+    title: "Paste the Video Link",
+    desc: "Copy the link of the video you wish to download from any supported platform (YouTube, Facebook, Instagram), and paste it into the 'Enter Video URL' field.",
+  },
+  {
+    image: guide3,
+    title: "Choose Quality",
+    desc: "After pasting the link, use the 'Select Quality' dropdown menu to choose your preferred resolution (720p is Recommended).",
+  },
+  {
+    image: guide4,
+    title: "Click 'Download'",
+    desc: "Once the quality is selected, click the 'Download MP4' button. Your video will start downloading immediately!",
+  },
+];
+// ===========================================
 
 export default function BlogIndex() {
   const { data: posts, isLoading } = useQuery<BlogPost[]>({
@@ -25,7 +56,7 @@ export default function BlogIndex() {
     <div className="min-h-screen bg-background">
       <Header />
       <AdBanner />
-      
+
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-20">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-16">
@@ -38,56 +69,66 @@ export default function BlogIndex() {
           </div>
 
           <div className="grid lg:grid-cols-4 gap-8">
-            {/* Blog Posts */}
+            {/* Blog Posts Column */}
             <div className="lg:col-span-3">
+
+              {/* === FEATURED DOWNLOAD GUIDE CARD === */}
+              <Card className="mb-8 overflow-hidden shadow-xl border border-primary/20">
+                <CardContent className="p-6 md:p-8">
+                  <div className="flex items-center space-x-3 mb-6">
+                    <Download className="w-6 h-6 text-primary" />
+                    <h2 className="text-2xl font-bold text-foreground">
+                      Quick Guide: How to Download (4 Steps)
+                    </h2>
+                  </div>
+
+                  {/* Image Card Grid */}
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    {downloadGuideSteps.map((step, index) => (
+                      <div key={index} className="space-y-2">
+                        <div className="relative w-full overflow-hidden rounded-lg shadow-md border border-border">
+                          <img
+                            src={step.image}
+                            alt={step.title}
+                            className="w-full h-auto object-cover aspect-video transition-transform hover:scale-105"
+                            loading="lazy"
+                          />
+                          <div className="absolute top-0 left-0 bg-primary text-white font-bold px-2 py-1 rounded-br-lg text-xs">
+                            STEP {index + 1}
+                          </div>
+                        </div>
+                        <h4 className="font-semibold text-sm text-foreground line-clamp-2">{step.title}</h4>
+                        <p className="text-muted-foreground text-xs">{step.desc}</p>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+              {/* ======================================================= */}
+
               {isLoading ? (
                 <div className="grid md:grid-cols-2 gap-8">
-                  {Array.from({ length: 6 }).map((_, i) => (
-                    <div key={i} className="animate-pulse">
-                      <div className="bg-muted rounded-xl h-48 mb-4"></div>
-                      <div className="space-y-2">
-                        <div className="h-4 bg-muted rounded w-3/4"></div>
-                        <div className="h-4 bg-muted rounded w-1/2"></div>
-                        <div className="h-3 bg-muted rounded w-full"></div>
-                        <div className="h-3 bg-muted rounded w-2/3"></div>
-                      </div>
-                    </div>
+                  {[...Array(4)].map((_, i) => (
+                    <div key={i} className="bg-muted animate-pulse rounded-lg h-48" />
                   ))}
                 </div>
               ) : (
                 <div className="grid md:grid-cols-2 gap-8">
                   {posts?.map((post) => (
-                    <article key={post.id} className="card-hover">
-                      <Card className="overflow-hidden">
-                        {/* Mock Image */}
-                        <div className="w-full h-48 bg-gradient-to-br from-primary/10 to-accent/10 flex items-center justify-center">
-                          <span className="text-muted-foreground text-sm">Blog Image</span>
-                        </div>
-                        <CardContent className="p-6">
-                          <div className="flex items-center space-x-4 text-sm text-muted-foreground mb-3">
-                            <div className="flex items-center space-x-1">
-                              <Calendar className="w-4 h-4" />
-                              <span>{formatDate(post.createdAt)}</span>
-                            </div>
-                            <div className="flex items-center space-x-1">
-                              <Clock className="w-4 h-4" />
-                              <span>{post.readTime} min read</span>
-                            </div>
-                          </div>
-                          <h3 className="text-xl font-semibold text-card-foreground mb-3 line-clamp-2">
-                            {post.title}
-                          </h3>
-                          <p className="text-muted-foreground mb-4 line-clamp-3">
-                            {post.excerpt}
-                          </p>
-                          <Link href={`/blog/${post.slug}`}>
-                            <Button variant="ghost" className="p-0 h-auto font-medium text-primary hover:text-primary/80">
-                              Read More
-                              <ArrowRight className="w-4 h-4 ml-1" />
-                            </Button>
-                          </Link>
-                        </CardContent>
-                      </Card>
+                    <article key={post.id} className="bg-card rounded-xl p-6 border border-border hover:shadow-lg transition-shadow">
+                      <div className="flex items-center space-x-2 text-sm text-muted-foreground mb-3">
+                        <Calendar className="w-4 h-4" />
+                        <time>{formatDate(post.createdAt)}</time>
+                      </div>
+                      <h3 className="text-xl font-bold text-foreground mb-2 line-clamp-2">
+                        <Link href={`/blog/${post.slug}`}>{post.title}</Link>
+                      </h3>
+                      <p className="text-muted-foreground text-sm line-clamp-3 mb-4">
+                        {post.excerpt}
+                      </p>
+                      <Button variant="link" className="p-0 h-auto font-medium text-primary">
+                        Read more <ArrowRight className="w-4 h-4 ml-1" />
+                      </Button>
                     </article>
                   ))}
                 </div>
@@ -97,29 +138,18 @@ export default function BlogIndex() {
             {/* Sidebar */}
             <div className="lg:col-span-1 space-y-6">
               <AdSidebar />
-              
-              {/* Popular Topics */}
               <Card>
                 <CardContent className="p-6">
-                  <h3 className="font-semibold text-card-foreground mb-4">Popular Topics</h3>
-                  <div className="space-y-2">
-                    {[
-                      "Video Compression",
-                      "Format Conversion", 
-                      "Audio Extraction",
-                      "Video Trimming",
-                      "Watermarking",
-                      "Social Media Optimization",
-                    ].map((topic, index) => (
-                      <a
-                        key={index}
-                        href="#"
-                        className="block px-3 py-2 text-sm text-muted-foreground hover:text-primary hover:bg-muted/50 rounded-md transition-colors"
-                      >
-                        {topic}
-                      </a>
+                  <h3 className="font-bold text-foreground mb-4">Popular Topics</h3>
+                  <ul className="space-y-2 text-sm">
+                    {["Compression", "Format Conversion", "Audio Extraction", "Watermarking"].map((topic) => (
+                      <li key={topic}>
+                        <Link href="#" className="text-primary hover:underline">
+                          {topic}
+                        </Link>
+                      </li>
                     ))}
-                  </div>
+                  </ul>
                 </CardContent>
               </Card>
             </div>
