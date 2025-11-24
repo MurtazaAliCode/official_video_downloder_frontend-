@@ -1,10 +1,22 @@
 import express, { type Request, Response, NextFunction } from "express";
 import http from "http"; // Import http module
+import cors from "cors"; // CORS middleware import
 // FIXED: Local imports mein .js extension add karna zaroori hai
 import { registerRoutes } from "./routes.js";
 import { setupVite, serveStatic, log } from "./vite.js";
 
 const app = express();
+
+// CORS middleware setup
+const corsOrigin = process.env.CORS_ORIGIN;
+if (corsOrigin) {
+  app.use(cors({
+    origin: corsOrigin,
+    credentials: true,
+  }));
+  log(`CORS enabled for origin: ${corsOrigin}`);
+}
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 

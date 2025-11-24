@@ -1,3 +1,4 @@
+// @ts-ignore
 import youtubedl from 'youtube-dl-exec';
 import path from 'path';
 import fs from 'fs/promises';

@@ -5,6 +5,8 @@ import { useToast } from "@/hooks/use-toast";
 import { LocalStorageManager } from "@/lib/storage-utils";
 import type { Job } from "@shared/schema";
 
+const API_BASE_URL = import.meta.env.VITE_API_URL || "";
+
 interface ProcessingOptions {
   action: string;
   filePath?: string;
@@ -48,7 +50,8 @@ export function useProcessing(): UseProcessingReturn {
       abortControllerRef.current = abortController;
       
       try {
-        const response = await fetch('/api/upload', {
+        const fullUrl = `${API_BASE_URL}/api/upload`;
+        const response = await fetch(fullUrl, {
           method: 'POST',
           body: formData,
           signal: abortController.signal,
@@ -210,7 +213,7 @@ export function useProcessing(): UseProcessingReturn {
 
 // Hook for tracking job status
 export function useJobStatus(jobId: string | null) {
-  return useQuery<Job>({
+  return useQuery<Job> ({
     queryKey: ['/api/status', jobId],
     enabled: !!jobId,
     refetchInterval: (query) => {
@@ -264,12 +267,14 @@ export function useDownload() {
   
   const downloadFile = useCallback(async (jobId: string, fileName?: string) => {
     try {
-      const response = await fetch(`/api/download/${jobId}`);
+      const fullUrl = `${API_BASE_URL}/api/download/${jobId}`;
+      const response = await fetch(fullUrl);
       
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.error || 'Download failed');
       }
+
       
       const blob = await response.blob();
       const url = URL.createObjectURL(blob);

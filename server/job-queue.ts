@@ -2,8 +2,8 @@
 import { stat } from 'fs/promises';
 import path from 'path';
 import { storage } from './storage.js';  // Storage import
-import { downloadVideoWithYtDlp } from './utils/videoDownloader';  // Download import
-import { getTitleFromYtDlp } from './yt-dlp-utils';  // Title import
+import { downloadVideoWithYtDlp } from './utils/videoDownloader.js';  // Download import
+import { getTitleFromYtDlp } from './yt-dlp-utils.js';  // Title import
 import { log } from './vite.js';  // Log import
 
 interface JobData {
@@ -63,7 +63,7 @@ class SimpleJobQueue {
             console.log(`⬇️ Starting download for ${jobId}...`);
             const outputPath = path.join(process.cwd(), 'downloads', `${jobId}.${downloadFormat}`);
 
-            const result = await downloadVideoWithYtDlp(url, outputPath, downloadFormat, (progress) => {
+            const result = await downloadVideoWithYtDlp(url, outputPath, downloadFormat, (progress: any) => {
                 console.log(`📊 Progress for ${jobId}: ${progress}%`);
                 // Storage update (throttled)
                 if (progress % 10 === 0) {

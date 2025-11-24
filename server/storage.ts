@@ -1,4 +1,4 @@
-import { type Job, type InsertJob, type BlogPost, type InsertBlogPost, type ContactMessage, type InsertContactMessage } from "@shared/schema";
+import { type Job, type InsertJob, type BlogPost, type InsertBlogPost, type ContactMessage, type InsertContactMessage } from "./shared/schema.js";
 import { randomUUID } from "crypto";
 
 export interface IStorage {

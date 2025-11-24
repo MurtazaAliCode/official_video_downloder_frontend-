@@ -1,8 +1,8 @@
 import { Router, type Application } from "express";
 import { type Request, Response } from "express";
 import { storage } from "./storage.js";
-import { addDownloadJob } from './job-queue';  // Simple queue ke liye
-import { InsertJob } from "@shared/schema";
+import { addDownloadJob } from './job-queue.js';  // Simple queue ke liye
+import { InsertJob } from "./shared/schema.js";
 import { log } from "./vite.js";  // Log ke liye
 
 // Setup Express Router
